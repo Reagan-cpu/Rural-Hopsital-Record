@@ -1,14 +1,16 @@
 .badge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
   text-transform: capitalize;
 }
 
-.green  { background: #dcfce7; color: #15803d; }
-.yellow { background: #fef9c3; color: #a16207; }
-.red    { background: #fee2e2; color: #b91c1c; }
-.gray   { background: #f3f4f6; color: #4b5563; }
-.blue   { background: #dbeafe; color: #1d4ed8; }
+.green  { background: #ecfdf5; color: #065f46; border: 1px solid #d1fae5; }
+.yellow { background: #fffbeb; color: #92400e; border: 1px solid #fef3c7; }
+.red    { background: #fef2f2; color: #991b1b; border: 1px solid #fee2e2; }
+.blue   { background: #eff6ff; color: #1e40af; border: 1px solid #dbeafe; }
+.gray   { background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; }
+

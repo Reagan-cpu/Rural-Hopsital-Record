@@ -31,7 +31,7 @@ export default function HouseholdMapView({ households }) {
         attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         maxZoom={19}
       />
-      <MarkerClusterGroup>
+      {/* <MarkerClusterGroup> */}
         {households.map((hh) => (
           <Marker
             key={hh.id}
@@ -50,7 +50,7 @@ export default function HouseholdMapView({ households }) {
             </Popup>
           </Marker>
         ))}
-      </MarkerClusterGroup>
+      {/* </MarkerClusterGroup> */}
     </MapContainer>
   );
 }

@@ -1,25 +1,55 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 body {
   font-family: var(--font-sans);
-  background: var(--color-bg);
+  background-color: var(--color-bg);
   color: var(--color-text);
-  font-size: 15px;
-  line-height: 1.5;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  margin: 0;
 }
 
 *, *::before, *::after {
   box-sizing: border-box;
 }
 
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: var(--radius-full);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border-hover);
+}
+
 a {
   color: var(--color-primary);
   text-decoration: none;
+  transition: color var(--transition-fast);
+}
+a:hover {
+  color: var(--color-primary-dark);
 }
 
 h1, h2, h3, h4 {
   line-height: 1.25;
   margin: 0;
+  font-weight: 600;
+  color: var(--color-text);
 }
 
 p { margin: 0; }
 
-button { cursor: pointer; }
+button { 
+  cursor: pointer;
+  font-family: inherit;
+}
+

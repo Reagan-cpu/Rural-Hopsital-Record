@@ -75,19 +75,26 @@ export default function Layout({ children }) {
             </>
           )}
         </nav>
-
-        <LanguageSwitcher />
-
-        <div className={styles.userCard}>
-          <div className={styles.userName}>{profile?.full_name ?? '…'}</div>
-          <div className={styles.userRole}>{fmtRole(profile?.role)}</div>
-          <button className={styles.signOut} onClick={handleSignOut}>Sign out</button>
-        </div>
       </aside>
 
-      <main className={styles.main}>{children}</main>
+      <div className={styles.container}>
+        <header className={styles.topbar}>
+          <div className={styles.topbarLeft}>
+            <LanguageSwitcher />
+          </div>
+          <div className={styles.topbarRight}>
+            <div className={styles.userInfo}>
+              <div className={styles.userName}>{profile?.full_name ?? '…'}</div>
+              <div className={styles.userRole}>{fmtRole(profile?.role)}</div>
+            </div>
+            <button className={styles.signOut} onClick={handleSignOut}>Sign out</button>
+          </div>
+        </header>
+        <main className={styles.main}>{children}</main>
+      </div>
     </div>
   );
 }
+
 
 Layout.propTypes = { children: PropTypes.node };
