@@ -6,7 +6,7 @@ import { logger } from '../lib/logger.js';
 const BATCH = 50;
 const MAX_RETRIES = 3;
 
-async function processNotifications() {
+export async function processNotifications() {
   const now = new Date().toISOString();
 
   // Fetch pending notifications due now (up to BATCH)

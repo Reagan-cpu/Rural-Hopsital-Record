@@ -4,7 +4,7 @@ import express from 'express';
 import cors from 'cors';
 import { errorHandler } from './middleware/errorHandler.js';
 import apiRouter from './routes/index.js';
-import { startNotificationWorker } from './workers/notificationWorker.js';
+import { processNotifications, startNotificationWorker } from './workers/notificationWorker.js';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -23,11 +23,33 @@ app.get('/api/health', (_req, res) => {
   res.json({ ok: true });
 });
 
+// Vercel Cron Endpoint
+app.get('/api/cron/notifications', async (req, res) => {
+  // Simple check to ensure this is called by Vercel Cron
+  // If CRON_SECRET is set in Vercel env, check it
+  if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  try {
+    await processNotifications();
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.use('/api', apiRouter);
 
 app.use(errorHandler);
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  startNotificationWorker();
-});
+// For local development
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+    startNotificationWorker();
+  });
+}
+
+export default app;
+
