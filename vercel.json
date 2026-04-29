@@ -21,11 +21,5 @@
       "dest": "client/$1",
       "check": true
     }
-  ],
-  "crons": [
-    {
-      "path": "/api/cron/notifications",
-      "schedule": "*/15 * * * *"
-    }
   ]
 }
