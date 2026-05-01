@@ -100,32 +100,96 @@ export async function createCheckup(pregnancyId, payload, actorId) {
     reminderDate.setDate(reminderDate.getDate() - 2);
     if (reminderDate > new Date()) {
       await scheduleNotification({
-        recipientUserId:   actorId,
-        type:              'checkup_reminder',
-        message:           `Upcoming pregnancy checkup scheduled for ${data.next_checkup_date}.`,
-        scheduledFor:      reminderDate.toISOString(),
+        recipientUserId: actorId,
+        type: 'checkup_reminder',
+        message: `Upcoming pregnancy checkup scheduled for ${data.next_checkup_date}.`,
+        scheduledFor: reminderDate.toISOString(),
         relatedEntityType: 'pregnancy_checkup',
-        relatedEntityId:   data.id,
-      }).catch(() => {});
+        relatedEntityId: data.id,
+      }).catch(() => { });
     }
   }
 
   return data;
 }
 
-export async function listAllPregnancies({ assignedDoctorId, status, riskLevel, limit, offset }) {
+export async function listAllPregnancies({ assignedDoctorId, status, riskLevel, limit, offset }, scope) {
+  const selection = `
+    ${PREG_COLS},
+    member:member_id (
+      full_name,
+      contact_number
+    )
+  `;
+
   let q = supabaseAdmin
     .from('pregnancies')
-    .select(PREG_COLS, { count: 'exact' })
+    .select(selection, { count: 'exact' })
     .order('created_at', { ascending: false });
 
   if (assignedDoctorId) q = q.eq('assigned_doctor_id', assignedDoctorId);
   if (status)           q = q.eq('status', status);
   if (riskLevel)        q = q.eq('risk_level', riskLevel);
 
+  // Non-admin scoping: only show pregnancies whose member belongs to
+  // a household that is visible to this user.
+  if (scope && !scope.isAdmin) {
+    const { districtIds, villageIds } = scope;
+
+    if (districtIds.length === 0 && villageIds.length === 0) {
+      return { items: [], total: 0, limit, offset };
+    }
+
+    // 1. Fetch the IDs of households the user can see (same logic as Households page)
+    let hhQuery = supabaseAdmin
+      .from('households')
+      .select('id');
+
+    const locationFilters = [];
+    if (districtIds.length > 0) locationFilters.push(`district_id.in.(${districtIds.map(id => `"${id}"`).join(',')})`);
+    if (villageIds.length  > 0) locationFilters.push(`village_id.in.(${villageIds.map(id => `"${id}"`).join(',')})`);
+
+    hhQuery = hhQuery.or(locationFilters.join(','));
+
+    const { data: hhData, error: hhError } = await hhQuery;
+    if (hhError) throw new AppError('INTERNAL', hhError.message, 500);
+
+    if (!hhData || hhData.length === 0) {
+      return { items: [], total: 0, limit, offset };
+    }
+
+    const householdIds = hhData.map(h => h.id);
+
+    // 2. Get member IDs from those households
+    const { data: memberData, error: memberError } = await supabaseAdmin
+      .from('members')
+      .select('id')
+      .in('household_id', householdIds);
+
+    if (memberError) throw new AppError('INTERNAL', memberError.message, 500);
+    if (!memberData || memberData.length === 0) {
+      return { items: [], total: 0, limit, offset };
+    }
+
+    const memberIds = memberData.map(m => m.id);
+
+    // 3. Filter pregnancies to only those members
+    q = q.in('member_id', memberIds);
+  }
+
   const { data, count, error } = await q.range(offset, offset + limit - 1);
   if (error) throw new AppError('INTERNAL', error.message, 500);
-  return { items: data.map(addTrimester), total: count, limit, offset };
+
+  const items = (data || []).map(p => {
+    const enriched = addTrimester(p);
+    return {
+      ...enriched,
+      member_name: p.member?.full_name || 'Unknown',
+      member_contact: p.member?.contact_number,
+    };
+  });
+
+  return { items, total: count, limit, offset };
 }
 
 export async function registerDelivery(pregnancyId, newbornData, actorId) {

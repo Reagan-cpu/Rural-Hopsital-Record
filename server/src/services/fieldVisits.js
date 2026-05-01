@@ -19,9 +19,48 @@ export async function listFieldVisits({ villageId, staffId, limit = 50, offset =
 }
 
 export async function createFieldVisit(payload, actorId) {
+  const { village_id, village_name, district_id, ...rest } = payload;
+
+  // If village_name is provided (custom village), create it first if it doesn't exist
+  let finalVillageId = village_id || (village_name ? crypto.randomUUID() : null);
+  if (village_name && finalVillageId) {
+    const { data: existingVillage, error: checkError } = await supabaseAdmin
+      .from('villages')
+      .select('id')
+      .eq('district_id', district_id)
+      .ilike('name', village_name)
+      .maybeSingle();
+
+    if (checkError) throw new AppError('INTERNAL', checkError.message, 500);
+
+    if (existingVillage) {
+      finalVillageId = existingVillage.id;
+    } else {
+      const { data: createdVillage, error: createError } = await supabaseAdmin
+        .from('villages')
+        .insert({ id: finalVillageId, name: village_name, district_id, verified: false })
+        .select('id')
+        .single();
+      if (createError?.code === '23505') {
+        const { data: dupVillage, error: dupError } = await supabaseAdmin
+          .from('villages')
+          .select('id')
+          .eq('district_id', district_id)
+          .ilike('name', village_name)
+          .maybeSingle();
+        if (dupError) throw new AppError('INTERNAL', dupError.message, 500);
+        if (dupVillage) finalVillageId = dupVillage.id;
+      } else if (createError) {
+        throw new AppError('INTERNAL', `Failed to create village: ${createError.message}`, 500);
+      } else if (createdVillage) {
+        finalVillageId = createdVillage.id;
+      }
+    }
+  }
+
   const { data, error } = await supabaseAdmin
     .from('field_visits')
-    .insert({ ...payload, staff_id: actorId })
+    .insert({ ...rest, village_id: finalVillageId, staff_id: actorId })
     .select(COLS)
     .single();
   if (error) throw new AppError('INTERNAL', error.message, 500);

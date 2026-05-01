@@ -7,8 +7,9 @@ import Button from '../components/Button.jsx';
 import Badge from '../components/Badge.jsx';
 import Modal from '../components/Modal.jsx';
 import Spinner from '../components/Spinner.jsx';
-import Select from '../components/Select.jsx';
 import Input from '../components/Input.jsx';
+import Select from '../components/Select.jsx';
+import VillageSelect from '../components/VillageSelect.jsx';
 import styles from './page.module.css';
 import formStyles from '../features/form.module.css';
 
@@ -28,28 +29,85 @@ export default function FieldVisitsPage() {
     enabled:  !!session,
   });
 
-  const { data: villages } = useQuery({
-    queryKey: ['villages-all'],
-    queryFn:  () => locationsApi.villages({ limit: 200 }),
-    enabled:  !!session,
+  const [f, setF] = useState({
+    state_id: '',
+    district_id: '',
+    village_id: '',
+    village_name: '',
+    households_updated: 0,
+    members_added: 0,
+    notes: '',
+  });
+  const set = (k) => (e) => setF((p) => ({ ...p, [k]: e.target.value }));
+  
+  const { data: states = [] } = useQuery({
+    queryKey: ['states'],
+    queryFn: () => locationsApi.states(),
+    enabled: !!session,
+    staleTime: 60_000,
   });
 
-  const [f, setF] = useState({ village_id: '', households_updated: 0, members_added: 0, notes: '' });
-  const set = (k) => (e) => setF((p) => ({ ...p, [k]: e.target.value }));
+  const { data: districts = [] } = useQuery({
+    queryKey: ['districts', f.state_id],
+    queryFn: () => locationsApi.districts(f.state_id),
+    enabled: !!session && !!f.state_id,
+    staleTime: 60_000,
+  });
+
+
+  const setState = (e) => {
+    const nextState = e.target.value;
+    setF((p) => ({
+      ...p,
+      state_id: nextState,
+      district_id: '',
+      village_id: '',
+      village_name: '',
+    }));
+  };
+
+  const setDistrict = (e) => {
+    const nextDistrict = e.target.value;
+    setF((p) => ({
+      ...p,
+      district_id: nextDistrict,
+      village_id: '',
+      village_name: '',
+    }));
+  };
+
+  const setVillage = ({ id, name }) => {
+    setF((p) => ({
+      ...p,
+      village_id: id,
+      village_name: name || '',
+    }));
+  };
 
   const mutation = useMutation({
     mutationFn: (payload) => fieldVisitsApi.create(payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['field-visits'] });
       setShowForm(false);
-      setF({ village_id: '', households_updated: 0, members_added: 0, notes: '' });
+      setF({
+        state_id: '',
+        district_id: '',
+        village_id: '',
+        village_name: '',
+        households_updated: 0,
+        members_added: 0,
+        notes: '',
+      });
     },
   });
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    const villageId = f.village_id || (f.village_name ? crypto.randomUUID() : '');
     mutation.mutate({
-      village_id:         f.village_id,
+      village_id:         villageId,
+      village_name:       f.village_name || undefined,
+      district_id:        f.district_id || undefined,
       households_updated: parseInt(f.households_updated, 10) || 0,
       members_added:      parseInt(f.members_added, 10) || 0,
       notes:              f.notes || undefined,
@@ -88,14 +146,29 @@ export default function FieldVisitsPage() {
 
       <Modal open={showForm} onClose={() => setShowForm(false)} title="Log Field Visit">
         <form onSubmit={handleSubmit} className={formStyles.form}>
-          <div className={formStyles.field}>
-            <label className={formStyles.label}>Village *</label>
-            <Select id="village_id" value={f.village_id} onChange={set('village_id')} required>
-              <option value="">Select village…</option>
-              {(villages?.items ?? []).map((v) => (
-                <option key={v.id} value={v.id}>{v.name}{v.districts?.name ? ` — ${v.districts.name}` : ''}</option>
+          <div className={formStyles.row}>
+            <Select id="state_id" label="State *" value={f.state_id} onChange={setState} required>
+              <option value="">Select state…</option>
+              {states.map((s) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
               ))}
             </Select>
+            <Select id="district_id" label="District *" value={f.district_id} onChange={setDistrict} required disabled={!f.state_id}>
+              <option value="">Select district…</option>
+              {districts.map((d) => (
+                <option key={d.id} value={d.id}>{d.name}</option>
+              ))}
+            </Select>
+          </div>
+          <div className={formStyles.field}>
+            <label className={formStyles.label}>Village *</label>
+            <VillageSelect
+              value={f.village_id}
+              nameValue={f.village_name}
+              onChange={setVillage}
+              disabled={!f.district_id}
+              required
+            />
           </div>
           <div className={formStyles.row}>
             <Input id="households_updated" label="Households updated" type="number" min={0} value={f.households_updated} onChange={set('households_updated')} />

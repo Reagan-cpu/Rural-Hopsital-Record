@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
+import { useRole } from '../hooks/useRole.js';
 import { apiFetch } from '../api/client.js';
 import Badge from '../components/Badge.jsx';
 import Spinner from '../components/Spinner.jsx';
@@ -9,17 +11,25 @@ import styles from './page.module.css';
 
 const RISK_COLOR = { low: 'green', medium: 'yellow', high: 'red' };
 
-function fetchMyPregnancies(doctorId) {
-  return apiFetch(`/pregnancies?assigned_doctor_id=${doctorId}&status=active&limit=100&offset=0`);
+function fetchPregnancies(params = {}) {
+  const searchParams = new URLSearchParams({
+    status: 'active',
+    limit: '100',
+    offset: '0',
+    ...params
+  });
+  return apiFetch(`/pregnancies?${searchParams.toString()}`);
 }
 
 export default function MyPregnanciesPage() {
-  const { session, profile } = useAuth();
+  const { session } = useAuth();
 
   const { data, isLoading } = useQuery({
-    queryKey: ['my-pregnancies', profile?.id],
-    queryFn:  () => fetchMyPregnancies(profile.id),
-    enabled:  !!session && !!profile?.id,
+    queryKey: ['pregnancies'],
+    queryFn: () => fetchPregnancies(),
+    enabled: !!session,
+    staleTime: 0,
+    gcTime: 0,
   });
 
   if (isLoading) return <Spinner center />;
@@ -36,48 +46,62 @@ export default function MyPregnanciesPage() {
 
   return (
     <div className={styles.page}>
-      <h1 className={styles.heading}>My Pregnancies</h1>
-      <p style={{ color: 'var(--color-muted)', fontSize: 13 }}>Active pregnancies assigned to you, sorted by risk then due date.</p>
+      <div className={styles.header} style={{ marginBottom: 24 }}>
+        <div>
+          <h1 className={styles.heading}>Pregnancy Registry</h1>
+          <p style={{ color: 'var(--color-muted)', fontSize: 13 }}>
+            Active pregnancies within your assigned monitoring area.
+          </p>
+        </div>
+      </div>
 
       {items.length === 0 && (
-        <p style={{ color: 'var(--color-muted)', marginTop: 24 }}>No active pregnancies assigned to you.</p>
+        <p style={{ color: 'var(--color-muted)', marginTop: 24 }}>No active pregnancies found in your area.</p>
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {items.map((p) => (
           <div
             key={p.id}
             style={{
               background: riskRowBg[p.risk_level] ?? 'var(--color-surface)',
-              border:     `1px solid ${riskBorder[p.risk_level] ?? '#e5e7eb'}`,
+              border: `1px solid ${riskBorder[p.risk_level] ?? '#e5e7eb'}`,
               borderRadius: 8,
-              padding: '12px 16px',
+              padding: '16px',
               display: 'flex',
               justifyContent: 'space-between',
-              alignItems: 'flex-start',
-              flexWrap: 'wrap',
-              gap: 8,
+              alignItems: 'center',
+              gap: 16,
             }}
           >
-            <div>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 4 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}>
+                <span style={{ fontWeight: 600, fontSize: 15 }}>{p.member_name}</span>
                 <Badge color={RISK_COLOR[p.risk_level] ?? 'gray'}>{p.risk_level} risk</Badge>
-                {p.trimester && <Badge color="gray">T{p.trimester}</Badge>}
+                {p.trimester && <Badge color="gray">Trimester {p.trimester}</Badge>}
               </div>
-              <div style={{ fontSize: 13, color: 'var(--color-muted)', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                {p.lmp_date          && <span>LMP: {fmtDate(p.lmp_date)}</span>}
-                {p.expected_due_date && <span>EDD (ref): {fmtDate(p.expected_due_date)}</span>}
+              <div style={{ fontSize: 13, color: 'var(--color-muted)', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                {p.lmp_date && <span>LMP: {fmtDate(p.lmp_date)}</span>}
+                {p.expected_due_date && <span>EDD: <strong>{fmtDate(p.expected_due_date)}</strong></span>}
+                {p.member_contact && <span>📞 {p.member_contact}</span>}
                 {p.missed_checkup_count > 0 && (
-                  <span style={{ color: 'var(--color-danger)' }}>{p.missed_checkup_count} missed checkup{p.missed_checkup_count !== 1 ? 's' : ''}</span>
+                  <span style={{ color: 'var(--color-danger)', fontWeight: 500 }}>{p.missed_checkup_count} missed checkup{p.missed_checkup_count !== 1 ? 's' : ''}</span>
                 )}
               </div>
-              {p.complications?.length > 0 && (
-                <p style={{ fontSize: 12, color: '#92400e', marginTop: 2 }}>Complications: {p.complications.join(', ')}</p>
-              )}
             </div>
             <Link
               to={`/members/${p.member_id}`}
-              style={{ fontSize: 13, color: 'var(--color-primary)', textDecoration: 'none', whiteSpace: 'nowrap' }}
+              style={{
+                padding: '8px 16px',
+                borderRadius: 6,
+                background: 'white',
+                border: '1px solid #e5e7eb',
+                fontSize: 13,
+                color: 'var(--color-primary)',
+                textDecoration: 'none',
+                whiteSpace: 'nowrap',
+                fontWeight: 500
+              }}
             >
               View patient →
             </Link>

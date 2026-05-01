@@ -101,20 +101,48 @@ export default function ReportsPage() {
 function ReportTable({ rows }) {
   if (!rows.length) return null;
   const headers = Object.keys(rows[0]);
+
+  // Check if a value is numeric (handles numbers and numeric strings)
+  const isNumericValue = (val) => {
+    if (val === null || val === undefined || typeof val === 'boolean') return false;
+    const s = String(val).trim();
+    return s !== '' && !isNaN(s);
+  };
+
   return (
     <div className={styles.tableWrap}>
       <table className={styles.table}>
         <thead>
-          <tr>{headers.map(h => <th key={h}>{h.replace(/_/g, ' ')}</th>)}</tr>
+          <tr>
+            {headers.map(h => {
+              const numeric = isNumericValue(rows[0][h]);
+              return (
+                <th 
+                  key={h} 
+                  className={numeric ? styles.num : ''}
+                  style={numeric ? { textAlign: 'right' } : {}}
+                >
+                  {h.replace(/_/g, ' ')}
+                </th>
+              );
+            })}
+          </tr>
         </thead>
         <tbody>
           {rows.map((row, i) => (
             <tr key={i}>
-              {headers.map(h => (
-                <td key={h} className={typeof row[h] === 'number' ? styles.num : ''}>
-                  {row[h] ?? '—'}
-                </td>
-              ))}
+              {headers.map(h => {
+                const numeric = isNumericValue(row[h]);
+                return (
+                  <td 
+                    key={h} 
+                    className={numeric ? styles.num : ''}
+                    style={numeric ? { textAlign: 'right' } : {}}
+                  >
+                    {row[h] ?? '—'}
+                  </td>
+                );
+              })}
             </tr>
           ))}
         </tbody>

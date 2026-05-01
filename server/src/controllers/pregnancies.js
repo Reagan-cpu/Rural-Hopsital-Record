@@ -18,7 +18,7 @@ export async function listAll(req, res) {
     riskLevel: risk_level,
     limit:  limit  ? parseInt(limit,  10) : 50,
     offset: offset ? parseInt(offset, 10) : 0,
-  });
+  }, req.locationScope);
   res.json({ data: result, error: null });
 }
 

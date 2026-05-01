@@ -41,6 +41,8 @@ export default function HouseholdsPage() {
     queryKey: ['households', params],
     queryFn: () => householdsApi.list(params),
     enabled: !!session,
+    staleTime: 0,
+    gcTime: 0,
   });
 
   const createMutation = useMutation({
@@ -119,6 +121,7 @@ export default function HouseholdsPage() {
                 <th>Malaria No.</th>
                 <th>Village</th>
                 <th>District</th>
+                <th>Family Head</th>
                 <th>Status</th>
                 <th></th>
               </tr>
@@ -129,6 +132,7 @@ export default function HouseholdsPage() {
                   <td className={styles.malaria}>{h.malaria_number}</td>
                   <td>{h.village ?? '—'}</td>
                   <td>{h.district ?? '—'}</td>
+                  <td>{h.head_member?.full_name ?? '—'}</td>
                   <td><Badge color={statusColor(h.status)}>{fmtStatus(h.status)}</Badge></td>
                   <td><Link to={`/households/${h.id}`} className={styles.viewLink}>View →</Link></td>
                 </tr>

@@ -21,6 +21,9 @@ export default function HouseholdDetailPage() {
   const qc = useQueryClient();
   const [showEdit, setShowEdit] = useState(false);
   const [showAddMember, setShowAddMember] = useState(false);
+  const [showMigrate, setShowMigrate] = useState(false);
+  const [showDissolve, setShowDissolve] = useState(false);
+  const [migrateDate, setMigrateDate] = useState(new Date().toISOString().split('T')[0]);
 
   const { data: household, isLoading: hLoading } = useQuery({
     queryKey: ['household', id],
@@ -42,6 +45,16 @@ export default function HouseholdDetailPage() {
   const addMemberMutation = useMutation({
     mutationFn: (payload) => householdsApi.addMember(id, payload),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['household-members', id] }); setShowAddMember(false); },
+  });
+
+  const migrateMutation = useMutation({
+    mutationFn: (date) => householdsApi.migrate(id, { migrated_date: date }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['household', id] }); setShowMigrate(false); },
+  });
+
+  const dissolveMutation = useMutation({
+    mutationFn: () => householdsApi.dissolve(id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['household', id] }); setShowDissolve(false); },
   });
 
   if (hLoading) return <Spinner center />;
@@ -66,8 +79,12 @@ export default function HouseholdDetailPage() {
           </div>
           <div className={styles.cardActions}>
             <Badge color={statusColor(household.status)}>{fmtStatus(household.status)}</Badge>
-            {isGroundStaff && (
-              <Button variant="secondary" size="sm" onClick={() => setShowEdit(true)}>Edit</Button>
+            {isGroundStaff && household.status === 'active' && (
+              <>
+                <Button variant="secondary" size="sm" onClick={() => setShowEdit(true)}>Edit</Button>
+                <Button variant="secondary" size="sm" onClick={() => setShowMigrate(true)}>Migrate</Button>
+                <Button variant="danger" size="sm" onClick={() => setShowDissolve(true)}>Dissolve</Button>
+              </>
             )}
             <button
               onClick={() => householdsApi.healthCard(id)}
@@ -139,6 +156,36 @@ export default function HouseholdDetailPage() {
           error={addMemberMutation.error?.message}
           onCancel={() => setShowAddMember(false)}
         />
+      </Modal>
+
+      <Modal open={showMigrate} onClose={() => setShowMigrate(false)} title="Migrate Household">
+        <div className={styles.modalContent}>
+          <p>Mark this household and all its active members as migrated?</p>
+          <div className={styles.field} style={{ marginTop: 20 }}>
+            <label style={{ display: 'block', marginBottom: 8, fontSize: 13, fontWeight: 500 }}>Migration Date</label>
+            <input 
+              type="date" 
+              className={styles.input} 
+              value={migrateDate} 
+              onChange={(e) => setMigrateDate(e.target.value)} 
+              style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }}
+            />
+          </div>
+          <div className={styles.modalActions} style={{ marginTop: 30, display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+            <Button variant="secondary" onClick={() => setShowMigrate(false)}>Cancel</Button>
+            <Button onClick={() => migrateMutation.mutate(migrateDate)} loading={migrateMutation.isPending}>Confirm Migration</Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal open={showDissolve} onClose={() => setShowDissolve(false)} title="Dissolve Household">
+        <div className={styles.modalContent}>
+          <p>Are you sure you want to dissolve this household? This action is permanent.</p>
+          <div className={styles.modalActions} style={{ marginTop: 30, display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+            <Button variant="secondary" onClick={() => setShowDissolve(false)}>Cancel</Button>
+            <Button variant="danger" onClick={() => dissolveMutation.mutate()} loading={dissolveMutation.isPending}>Dissolve Household</Button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

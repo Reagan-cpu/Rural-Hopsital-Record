@@ -17,11 +17,12 @@ export default function SearchPage() {
   const [page, setPage] = useState(0);
   const LIMIT = 20;
   const dq = useDebounce(q, 350);
+  const effectiveQuery = dq.length >= 2 ? dq : '';
 
   const { data, isLoading, isFetching } = useQuery({
-    queryKey: ['person-search', dq, page],
-    queryFn: () => searchApi.person(dq, { limit: LIMIT, offset: page * LIMIT }),
-    enabled: !!session && dq.length >= 2,
+    queryKey: ['person-search', effectiveQuery, page],
+    queryFn: () => searchApi.person(effectiveQuery, { limit: LIMIT, offset: page * LIMIT }),
+    enabled: !!session,
     keepPreviousData: true,
   });
 
@@ -41,15 +42,15 @@ export default function SearchPage() {
           onChange={e => { setQ(e.target.value); setPage(0); }}
           autoFocus
         />
-        {(isLoading || isFetching) && dq.length >= 2 && <Spinner size="sm" />}
+        {(isLoading || isFetching) && <Spinner size="sm" />}
       </div>
 
       {dq.length > 0 && dq.length < 2 && (
-        <p className={styles.hint}>Type at least 2 characters to search.</p>
+        <p className={styles.hint}>Type at least 2 characters to filter results.</p>
       )}
 
-      {dq.length >= 2 && !isLoading && items.length === 0 && (
-        <p className={styles.empty}>No matches found for "{dq}".</p>
+      {effectiveQuery.length >= 2 && !isLoading && items.length === 0 && (
+        <p className={styles.empty}>No matches found for "{effectiveQuery}".</p>
       )}
 
       {items.length > 0 && (

@@ -38,7 +38,7 @@ export async function scopeToUserLocations(req, res, next) {
   req.locationScope = {
     isAdmin: false,
     districtIds: districtResult.data.map(r => r.district_id),
-    villageIds:  villageResult.data.map(r => r.village_id),
+    villageIds: villageResult.data.map(r => r.village_id),
   };
 
   next();
@@ -68,9 +68,10 @@ export function applyLocationScope(query, scope) {
   }
 
   const filters = [];
-  if (districtIds.length > 0) filters.push(`district_id.in.(${districtIds.join(',')})`);
-  if (villageIds.length  > 0) filters.push(`village_id.in.(${villageIds.join(',')})`);
+  if (districtIds.length > 0) filters.push(`district_id.in.(${districtIds.map(id => `"${id}"`).join(',')})`);
+  if (villageIds.length > 0) filters.push(`village_id.in.(${villageIds.map(id => `"${id}"`).join(',')})`);
 
+  if (filters.length === 0) return query.eq('id', '00000000-0000-0000-0000-000000000000');
   return query.or(filters.join(','));
 }
 
@@ -101,7 +102,7 @@ export function isHouseholdObjectInScope(household, scope) {
   const { districtIds, villageIds } = scope;
 
   if (household.district_id && districtIds.includes(household.district_id)) return true;
-  if (household.village_id  && villageIds.includes(household.village_id))   return true;
+  if (household.village_id && villageIds.includes(household.village_id)) return true;
 
   return false;
 }

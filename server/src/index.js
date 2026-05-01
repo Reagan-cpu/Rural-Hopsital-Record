@@ -6,8 +6,20 @@ import { errorHandler } from './middleware/errorHandler.js';
 import apiRouter from './routes/index.js';
 import { processNotifications, startNotificationWorker } from './workers/notificationWorker.js';
 
+import { execSync } from 'child_process';
 const app = express();
 const PORT = process.env.PORT || 4000;
+
+// Programmatically clear port if in use (Windows)
+function clearPort(port) {
+  if (process.platform !== 'win32') return;
+  try {
+    const cmd = `for /f "tokens=5" %a in ('netstat -aon ^| find ":${port}" ^| find "LISTENING"') do taskkill /f /pid %a`;
+    execSync(cmd, { stdio: 'ignore' });
+  } catch (e) {
+    // Ignore errors if port not found
+  }
+}
 
 app.set('trust proxy', 1);
 
@@ -45,6 +57,7 @@ app.use(errorHandler);
 
 // For local development
 if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+  clearPort(PORT);
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     startNotificationWorker();

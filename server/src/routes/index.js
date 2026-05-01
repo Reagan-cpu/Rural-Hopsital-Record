@@ -9,9 +9,9 @@ import vaccinationsRouter from './vaccinations.js';
 import auditLogsRouter from './auditLogs.js';
 import notificationsRouter from './notifications.js';
 import locationsRouter from './locations.js';
-import searchRouter    from './search.js';
-import adminRouter     from './admin.js';
-import reportsRouter   from './reports.js';
+import searchRouter from './search.js';
+import adminRouter from './admin.js';
+import reportsRouter from './reports.js';
 import fieldVisitsRouter from './fieldVisits.js';
 
 const router = Router();
@@ -25,10 +25,10 @@ router.use('/pregnancies', pregnanciesRouter);
 router.use('/vaccinations', vaccinationsRouter);
 router.use('/audit-logs', auditLogsRouter);
 router.use('/notifications', notificationsRouter);
-router.use('/locations',    locationsRouter);
-router.use('/search',      searchRouter);
-router.use('/admin',       adminRouter);
-router.use('/reports',     reportsRouter);
+router.use('/locations', locationsRouter);
+router.use('/search', searchRouter);
+router.use('/admin', adminRouter);
+router.use('/reports', reportsRouter);
 router.use('/field-visits', fieldVisitsRouter);
 
 export default router;

@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabaseClient.js';
+import { getToken } from '../lib/tokenStore.js';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -6,16 +7,15 @@ const BASE_URL = import.meta.env.VITE_API_BASE_URL;
  * Central fetch wrapper that automatically attaches the Supabase
  * session access_token as a Bearer token on every request.
  *
- * - Fetches the *current* session at call-time so the token is always fresh.
+ * - Uses cached token from AuthContext (via tokenStore) to avoid async overhead.
  * - Throws a clear error if the user is not logged in.
  * - All API modules should call this instead of raw fetch().
  */
 export async function apiFetch(path, options = {}) {
   const { headers: customHeaders, rawBody, ...fetchOptions } = options;
 
-  // Always grab the freshest token from Supabase at call-time
-  const { data: { session } } = await supabase.auth.getSession();
-  const token = session?.access_token;
+  // Use cached token from AuthContext to avoid repeated supabase.auth.getSession() calls
+  const token = getToken();
 
   // Don't set Content-Type for FormData — browser sets it with boundary
   const isFormData = rawBody instanceof FormData;
@@ -47,8 +47,7 @@ export async function apiFetch(path, options = {}) {
  * Triggers a browser download automatically.
  */
 export async function apiFetchDownload(path, filename) {
-  const { data: { session } } = await supabase.auth.getSession();
-  const token = session?.access_token;
+  const token = getToken();
 
   const res = await fetch(`${BASE_URL}${path}`, {
     headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },

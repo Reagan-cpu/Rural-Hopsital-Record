@@ -51,6 +51,13 @@ export async function migrate(req, res) {
   res.json({ data: { success: true }, error: null });
 }
 
+export async function dissolve(req, res) {
+  const household = await svc.getHousehold(req.params.id);
+  svc.assertHouseholdInScope(household, req.locationScope);
+  await svc.dissolveHousehold(req.params.id, req.profile.id);
+  res.json({ data: { success: true }, error: null });
+}
+
 export async function checkDuplicates(req, res) {
   const { village, head_name } = req.query;
   const data = await findSimilarHouseholds({ village, headName: head_name });

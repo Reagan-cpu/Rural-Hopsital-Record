@@ -21,6 +21,7 @@ router.get('/:id',                  staff,   ctrl.getOne);
 router.patch('/:id',                writers, ctrl.update);
 router.post('/:id/change-head',     writers, ctrl.changeHead);
 router.post('/:id/migrate',         writers, ctrl.migrate);
+router.post('/:id/dissolve',        writers, ctrl.dissolve);
 
 // members nested under household
 router.get('/:householdId/members',  staff,   listMembers);

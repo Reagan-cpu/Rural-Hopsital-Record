@@ -2,6 +2,7 @@ import { createContext, useCallback, useEffect, useReducer } from 'react';
 import PropTypes from 'prop-types';
 import { supabase } from '../lib/supabaseClient.js';
 import { apiFetch } from '../api/client.js';
+import { setToken, clearToken } from '../lib/tokenStore.js';
 
 export const AuthContext = createContext(null);
 
@@ -31,13 +32,21 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       dispatch({ type: 'SET_SESSION', session });
-      if (session) fetchProfile();
+      if (session) {
+        setToken(session.access_token);
+        fetchProfile();
+      }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       dispatch({ type: 'SET_SESSION', session });
-      if (session) fetchProfile();
-      else dispatch({ type: 'CLEAR' });
+      if (session) {
+        setToken(session.access_token);
+        fetchProfile();
+      } else {
+        clearToken();
+        dispatch({ type: 'CLEAR' });
+      }
     });
 
     return () => subscription.unsubscribe();

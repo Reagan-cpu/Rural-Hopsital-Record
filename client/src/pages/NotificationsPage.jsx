@@ -20,8 +20,11 @@ export default function NotificationsPage() {
   return (
     <div className={styles.page}>
       <h1 className={styles.title}>Notifications</h1>
+      <p style={{ color: 'var(--color-muted)', fontSize: 13, marginBottom: 24 }}>
+        Alert center for health monitoring, scheduled reminders, and system events.
+      </p>
       {isLoading && <Spinner center />}
-      {!isLoading && items.length === 0 && <p className={styles.empty}>No notifications.</p>}
+      {!isLoading && items.length === 0 && <p className={styles.empty}>No notifications available.</p>}
       <div className={styles.list}>
         {items.map((n) => (
           <div key={n.id} className={[styles.item, n.read_at ? styles.read : ''].join(' ')}>
