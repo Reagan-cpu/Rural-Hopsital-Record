@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
-import villages from '../data/villages.json';
+import { useQuery } from '@tanstack/react-query';
+import { locationsApi } from '../api/locations.js';
 import styles from './VillageSelect.module.css';
 
 /**
@@ -7,12 +8,20 @@ import styles from './VillageSelect.module.css';
  * User can type to filter villages by name or select from dropdown.
  */
 export default function VillageSelect({
+  districtId,
   value,
   nameValue,
   onChange,
   required = false,
   disabled = false,
 }) {
+  const { data: villages = [] } = useQuery({
+    queryKey: ['villages', districtId, nameValue],
+    queryFn: () => locationsApi.villages({ districtId, q: nameValue, limit: 50 }),
+    enabled: !!districtId && !disabled,
+    staleTime: 60_000,
+  });
+
   const selectedVillage = villages.find((v) => v.id === value);
   const isUuid = (id) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
 
@@ -36,7 +45,7 @@ export default function VillageSelect({
         value={selectedVillage?.name || nameValue || ''}
         onChange={handleInputChange}
         placeholder="Type or select village…"
-        required={required && !value}
+        required={required && !(value || nameValue)}
         disabled={disabled}
         autoComplete="off"
         className={styles.input}
@@ -44,7 +53,7 @@ export default function VillageSelect({
       <datalist id="village-list">
         {villages.map((v) => (
           <option key={v.id} value={v.name}>
-            {v.district} — {v.state}
+            {v.districts?.name || v.district_id}
           </option>
         ))}
       </datalist>
@@ -53,6 +62,7 @@ export default function VillageSelect({
 }
 
 VillageSelect.propTypes = {
+  districtId: PropTypes.string,
   value: PropTypes.string,
   nameValue: PropTypes.string,
   onChange: PropTypes.func.isRequired,

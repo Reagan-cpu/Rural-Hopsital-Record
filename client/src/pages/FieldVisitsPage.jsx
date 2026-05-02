@@ -9,7 +9,6 @@ import Modal from '../components/Modal.jsx';
 import Spinner from '../components/Spinner.jsx';
 import Input from '../components/Input.jsx';
 import Select from '../components/Select.jsx';
-import VillageSelect from '../components/VillageSelect.jsx';
 import styles from './page.module.css';
 import formStyles from '../features/form.module.css';
 
@@ -22,6 +21,7 @@ export default function FieldVisitsPage() {
   const { session } = useAuth();
   const qc = useQueryClient();
   const [showForm, setShowForm] = useState(false);
+  const [manualVillage, setManualVillage] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ['field-visits'],
@@ -54,6 +54,13 @@ export default function FieldVisitsPage() {
     staleTime: 60_000,
   });
 
+  const { data: villages = [] } = useQuery({
+    queryKey: ['villages', f.district_id],
+    queryFn: () => locationsApi.villages({ districtId: f.district_id }),
+    enabled: !!session && !!f.district_id && !manualVillage,
+    staleTime: 60_000,
+  });
+
 
   const setState = (e) => {
     const nextState = e.target.value;
@@ -76,11 +83,22 @@ export default function FieldVisitsPage() {
     }));
   };
 
-  const setVillage = ({ id, name }) => {
+  const setVillage = (e) => {
+    const nextVillageId = e.target.value;
+    const selected = villages.find((v) => v.id === nextVillageId);
     setF((p) => ({
       ...p,
-      village_id: id,
-      village_name: name || '',
+      village_id: nextVillageId,
+      village_name: selected?.name || '',
+    }));
+  };
+
+  const toggleManualVillage = (on) => {
+    setManualVillage(on);
+    setF((p) => ({
+      ...p,
+      village_id: '',
+      village_name: on ? p.village_name : '',
     }));
   };
 
@@ -98,6 +116,7 @@ export default function FieldVisitsPage() {
         members_added: 0,
         notes: '',
       });
+      setManualVillage(false);
     },
   });
 
@@ -161,14 +180,34 @@ export default function FieldVisitsPage() {
             </Select>
           </div>
           <div className={formStyles.field}>
-            <label className={formStyles.label}>Village *</label>
-            <VillageSelect
-              value={f.village_id}
-              nameValue={f.village_name}
-              onChange={setVillage}
-              disabled={!f.district_id}
-              required
-            />
+            {manualVillage ? (
+              <div>
+                <Input
+                  id="village_name"
+                  label="Village *"
+                  value={f.village_name}
+                  onChange={set('village_name')}
+                  placeholder="Type village name"
+                  required
+                  disabled={!f.district_id}
+                />
+                <button type="button" className={formStyles.toggleLink} onClick={() => toggleManualVillage(false)}>
+                  {'<- Pick from list instead'}
+                </button>
+              </div>
+            ) : (
+              <div>
+                <Select id="village_id" label="Village *" value={f.village_id} onChange={setVillage} required disabled={!f.district_id}>
+                  <option value="">Select village…</option>
+                  {villages.map((v) => (
+                    <option key={v.id} value={v.id}>{v.name}</option>
+                  ))}
+                </Select>
+                <button type="button" className={formStyles.toggleLink} onClick={() => toggleManualVillage(true)}>
+                  Village not in list? Enter manually
+                </button>
+              </div>
+            )}
           </div>
           <div className={formStyles.row}>
             <Input id="households_updated" label="Households updated" type="number" min={0} value={f.households_updated} onChange={set('households_updated')} />

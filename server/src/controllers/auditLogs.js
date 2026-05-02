@@ -1,6 +1,5 @@
-import { z } from 'zod';
 import { validate } from '../lib/validate.js';
-import { paginationSchema } from '../../../shared/schemas/pagination.js';
+import { z, paginationSchema } from '../../../shared/schemas/pagination.js';
 import * as svc from '../services/auditLogs.js';
 
 const filterSchema = paginationSchema.extend({
